@@ -14,6 +14,44 @@ type Quest
 
 
 
+-- QUESTS
+
+
+quests : Generator Quest
+quests =
+    R.uniform
+        (R.map Slay slayQuests)
+        [ R.map Rescue rescueQuests
+        , R.map Retrieve retrieveQuests
+        ]
+        |> R.andThen identity
+
+
+slayQuests : Generator SlayQuestOptions
+slayQuests =
+    enemies
+        |> R.andThen
+            (\enemy ->
+                R.map3 SlayQuestOptions
+                    (R.constant enemy)
+                    locations
+                    (reasons enemy)
+            )
+
+
+rescueQuests : Generator RescueQuestOptions
+rescueQuests =
+    R.map2 RescueQuestOptions
+        allies
+        locations
+
+
+retrieveQuests : Generator RetreiveQuestOptions
+retrieveQuests =
+    R.map RetreiveQuestOptions items
+
+
+
 -- SLAY
 
 
@@ -59,6 +97,58 @@ type Power
     = StopTime
     | LifeAndDeath
     | RoastMarshmallows
+
+
+items : Generator Item
+items =
+    powers
+        |> R.andThen
+            (\power ->
+                R.uniform
+                    (Amulet power)
+                    [ Treasure
+                    , Scroll power
+                    , Sword power
+                    ]
+            )
+
+
+itemToString : Item -> String
+itemToString item =
+    case item of
+        Amulet power ->
+            "Amulet of " ++ powerToString power
+
+        Treasure ->
+            "Treasure"
+
+        Scroll power ->
+            "Scroll of " ++ powerToString power
+
+        Sword power ->
+            "Sword of " ++ powerToString power
+
+
+powers : Generator Power
+powers =
+    R.uniform
+        StopTime
+        [ LifeAndDeath
+        , RoastMarshmallows
+        ]
+
+
+powerToString : Power -> String
+powerToString power =
+    case power of
+        StopTime ->
+            "Time"
+
+        LifeAndDeath ->
+            "Life and Death"
+
+        RoastMarshmallows ->
+            "Smores"
 
 
 
@@ -316,38 +406,6 @@ reasonToString reason =
             "They're " ++ method ++ " the " ++ locationToString location ++ "!"
 
 
-
--- QUESTS
-
-
-quests : Generator Quest
-quests =
-    R.uniform
-        (R.map Slay slayQuests)
-        [ R.map Rescue rescueQuests
-        ]
-        |> R.andThen identity
-
-
-slayQuests : Generator SlayQuestOptions
-slayQuests =
-    enemies
-        |> R.andThen
-            (\enemy ->
-                R.map3 SlayQuestOptions
-                    (R.constant enemy)
-                    locations
-                    (reasons enemy)
-            )
-
-
-rescueQuests : Generator RescueQuestOptions
-rescueQuests =
-    R.map2 RescueQuestOptions
-        allies
-        locations
-
-
 toSeed : String -> R.Seed
 toSeed =
     String.toList
@@ -426,4 +484,4 @@ questToString quest =
                 ]
 
         Retrieve { target } ->
-            "ehhehehe"
+            "Retrieve the " ++ itemToString target ++ "!"
